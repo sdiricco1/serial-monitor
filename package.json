@@ -1,0 +1,48 @@
+{
+  "build": {
+    "buildDependenciesFromSource": true,
+    "npmRebuild": false
+  },
+  "name": "serial-monitor",
+  "version": "0.0.1",
+  "description": "a simple serial monitor",
+  "main": "./src/electron_main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node ./src/index.js",
+    "react-start": "react-scripts start",
+    "react-build": "react-scripts build",
+    "electron-start": "electron .",
+    "electron-rebuild": ".\\node_modules\\.bin\\electron-rebuild.cmd",
+    "electron-rebuild-serialport": "electron-rebuild -f -w serialport"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@material-ui/core": "^4.11.4",
+    "@material-ui/icons": "^4.11.2",
+    "@testing-library/jest-dom": "^5.14.1",
+    "@testing-library/react": "^11.2.7",
+    "@testing-library/user-event": "^12.8.3",
+    "prompt-sync": "^4.2.0",
+    "serialport": "^9.2.0",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
+    "react-scripts": "4.0.3",
+    "electron": "^13.1.2",
+    "electron-builder": "^22.11.7",
+    "electron-is-dev": "^2.0.0"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}
