@@ -1,14 +1,39 @@
 const { app, BrowserWindow, ipcMain, dialog } = require("electron");
+
+const path = require("path");
 const isDev = require("electron-is-dev");
+const {SerialMonitor} = require("./modules/serialMonitor")
 
 let mainWindow;
+
+ipcMain.handle("get-port-list", async (event) => {
+  let portList = undefined;
+  try {
+    portList = await SerialMonitor.getDevics();
+    console.log(portList)
+  } catch (error) {
+    console.log(error)
+  }
+  return portList;
+});
+
+ipcMain.handle("get-baudrate-values", async (event) => {
+  let baudRateValues = undefined;
+  try {
+    baudRateValues = await SerialMonitor.getBaudRateValues();
+    console.log(baudRateValues)
+  } catch (error) {
+    console.log(error)
+  }
+  return baudRateValues;
+});
 
 function createWindow() {
   mainWindow = new BrowserWindow({
     minWidth: 1200,
     minHeight: 720,
     show: false,
-    title: "PumpLoggerCore App ",
+    title: "Serial Monitor App ",
     webPreferences: {
       nodeIntegration: true,
       enableRemoteModule: true,
