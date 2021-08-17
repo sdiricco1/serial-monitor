@@ -58,14 +58,28 @@ class SerialMonitor {
     }
   }
 
-  connect() {
+  async connect() {
     if (this.__baudRate !== undefined && this.__port !== undefined) {
-      this.__sp = new serialport(this.__port, {
-        baudRate: this.__baudRate,
-      });
-      this.__parser = this.__sp;
+      try {
+        this.__sp = new serialport(this.__port, {
+          baudRate: this.__baudRate,
+        });
+        this.__parser = this.__sp;
+      } catch (e) {
+        throw e
+      }
       this.__isConnected = true;
     }
+  }
+
+  async disconnect() {
+    this.__isConnected = false;
+    try {
+      this.__close();
+    } catch (e) {
+      throw e;
+    }
+    
   }
 
   onData(callback) {
@@ -75,6 +89,63 @@ class SerialMonitor {
         callback(data.toString());
       });
     }
+  }
+
+  onError(callback){
+    if(this.__sp !== undefined && this.__isConnected){
+      this.__sp.on('close', (data)=>{
+        if(data !== null){
+          callback(`Error: Port ${this.__port} closed. Try to reconnect`);
+        }
+      })
+    }
+  }
+
+  async write(data) {
+    await this.__writeAndDrain(data);
+  }
+
+  async __writeAndDrain(buffer) {
+    try {
+      await this.__write(buffer);
+      await this.__drain();
+    } catch (e) {
+      throw e;
+    }
+    return true;
+  }
+
+  async __flush() {
+    if (this.__sp !== undefined) {
+      return new Promise((resolve, reject) => {
+        this.__sp.flush((e) => (e ? reject(e) : resolve(true)));
+      });
+    }
+  }
+
+  async __drain() {
+    if (this.__sp !== undefined) {
+      return new Promise((resolve, reject) => {
+        this.__sp.drain((e) => (e ? reject(e) : resolve(true)));
+      });
+    }
+  }
+
+  async __write(buffer) {
+    if (this.__sp !== undefined) {
+      return new Promise((resolve, reject) => {
+        this.__sp.write(buffer, (e) => (e ? reject(e) : resolve(true)));
+      });
+    }
+  }
+
+  async __close() {
+    if (this.__sp !== undefined) {
+      return new Promise((resolve, reject) => {
+        this.__sp.close((e) => (e ? reject(e) : resolve(true)));
+      });
+    }
+    this.__sp = undefined;
   }
 }
 
