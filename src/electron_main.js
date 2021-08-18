@@ -20,8 +20,8 @@ const showMessageBox=(options) => {
 }
 
 
-const onSerialMonitorData = (data) => {
-  mainWindow.webContents.send("on-serialmonitor-data", data);
+const onSerialMonitorData = (dataStructure) => {
+  mainWindow.webContents.send("on-serialmonitor-data", dataStructure);
 }
 
 const onSerialMonitorError = (data) =>{
@@ -57,32 +57,53 @@ ipcMain.handle("get-baudrate-values", async (event) => {
 ipcMain.handle("start-serialmonitor", async (event, baudRate, port) => {
   sm.baudRate = baudRate;
   sm.port = port;
+
+  console.log("baud", baudRate);
+  console.log("port", port)
   try {
     await sm.connect();
+    sm.onData(onSerialMonitorData);
+    sm.onError(onSerialMonitorError);
+    return true;
+  } catch (e) {
+    onSerialMonitorError(e.message);
+    return false;
+  }
+});
+
+ipcMain.handle("stop-serialmonitor", async (event) => {
+  try {
+    await sm.disconnect();
+    return true;
   } catch (e) {
     showMessageBox({
       title: "Error",
       type: "error",
       message:e.message,
     });
+    return false
   }
-
-  sm.onData(onSerialMonitorData);
-  sm.onError(onSerialMonitorError);
-});
-
-ipcMain.handle("stop-serialmonitor", async (event) => {
-  await sm.disconnect();
+  
 });
 
 ipcMain.handle("send-data", async (event, data) => {
-  await sm.write(data);
+  try {
+    await sm.write(data);
+    return true;
+  } catch (e) {
+    showMessageBox({
+      title: "Error",
+      type: "error",
+      message:e.message,
+    });
+    return false;
+  }
 });
 
 function createWindow() {
   mainWindow = new BrowserWindow({
     minWidth: 400,
-    minHeight: 400,
+    minHeight: 600,
     show: true,
     title: "Serial Monitor App ",
     webPreferences: {
@@ -99,7 +120,7 @@ function createWindow() {
 
   mainWindow.once("ready-to-show", () => {
     mainWindow.show();
-    mainWindow.toggleDevTools();
+    // mainWindow.toggleDevTools();
   });
   mainWindow.on("closed", () => {
     mainWindow = null;

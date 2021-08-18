@@ -63,10 +63,12 @@ class SerialMonitor {
       try {
         this.__sp = new serialport(this.__port, {
           baudRate: this.__baudRate,
+          autoOpen: false
         });
+        await this.__open();
         this.__parser = this.__sp;
       } catch (e) {
-        throw e
+        throw e;
       }
       this.__isConnected = true;
     }
@@ -75,33 +77,43 @@ class SerialMonitor {
   async disconnect() {
     this.__isConnected = false;
     try {
-      this.__close();
+      await this.__close();
     } catch (e) {
       throw e;
     }
-    
   }
 
   onData(callback) {
     if (this.__isConnected) {
       console.log("on data");
       this.__parser.on("data", (data) => {
-        callback(data.toString());
+        const res = {
+          timestamp: new Date().getTime(),
+          data: data.toString(),
+        }
+        callback(res);
       });
     }
   }
 
-  onError(callback){
-    if(this.__sp !== undefined && this.__isConnected){
-      this.__sp.on('close', (data)=>{
-        if(data !== null){
+  onError(callback) {
+    if (this.__sp !== undefined && this.__isConnected) {
+      this.__sp.on("close", (data) => {
+        if (data !== null) {
           callback(`Error: Port ${this.__port} closed. Try to reconnect`);
         }
-      })
+      });
+    }else if (this.__sp !== undefined) {
+      this.__sp.on("error", (data) => {
+        callback(`Error: Port ${this.__port} closed. Try to reconnect`);
+      });
     }
   }
 
   async write(data) {
+    if(this.__sp == undefined){
+      throw(new Error("Connect a serial device before"))
+    }
     await this.__writeAndDrain(data);
   }
 
@@ -119,6 +131,14 @@ class SerialMonitor {
     if (this.__sp !== undefined) {
       return new Promise((resolve, reject) => {
         this.__sp.flush((e) => (e ? reject(e) : resolve(true)));
+      });
+    }
+  }
+
+  async __open() {
+    if (this.__sp !== undefined) {
+      return new Promise((resolve, reject) => {
+        this.__sp.open((e) => (e ? reject(e) : resolve(true)));
       });
     }
   }
