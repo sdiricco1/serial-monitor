@@ -1,28 +1,10 @@
 {
-  "build": {
-    "buildDependenciesFromSource": true,
-    "npmRebuild": false
-  },
   "name": "serial-monitor",
   "version": "0.0.1",
-  "productName": "Electron tutorial app",
-  "description": "a simple serial monitor",
-  "homepage": "./",
-  "main": "./src/electron_main.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node ./src/index.js",
-    "react-start": "react-scripts start",
-    "react-build": "react-scripts build",
-    "dev": "concurrently \"npm run react-start\" \"wait-on http://localhost:3000 && electron .\"",
-    "electron-start": "electron .",
-    "electron-rebuild": ".\\node_modules\\.bin\\electron-rebuild.cmd",
-    "electron-rebuild-serialport": "electron-rebuild -f -w serialport"
-  },
-  "author": "",
-  "license": "ISC",
+  "private": true,
   "dependencies": {
     "@ant-design/icons": "^4.6.3",
+    "@electron/remote": "^1.0.2",
     "@testing-library/jest-dom": "^5.14.1",
     "@testing-library/react": "^11.2.7",
     "@testing-library/user-event": "^12.8.3",
@@ -33,6 +15,36 @@
     "react-scripts": "^4.0.3",
     "serialport": "^9.2.0"
   },
+  "productName": "Serial monitor",
+  "description": "A simple serial monitor",
+  "main": "public/electron_main.js",
+  "homepage": "./",
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
+    "electron:serve": "concurrently -k \"cross-env BROWSER=none yarn start\" \"yarn electron:start\"",
+    "electron:build": "yarn build && electron-builder -c.extraMetadata.main=build/electron_main.js",
+    "electron:start": "wait-on tcp:3000 && electron .",
+    "electron-rebuild": ".\\node_modules\\.bin\\electron-rebuild.cmd",
+    "electron-rebuild-serialport": "electron-rebuild -f -w serialport"
+  },
+  "build": {
+    "extends": null,
+    "appId": "com.example.electron-cra",
+    "files": [
+      "dist/**/*",
+      "build/**/*",
+      "node_modules/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "buildResources": "assets"
+    }
+  },
+  "author": "",
+  "license": "ISC",
   "browserslist": {
     "production": [
       ">0.2%",
@@ -46,9 +58,12 @@
     ]
   },
   "devDependencies": {
-    "electron": "^13.2.1",
-    "electron-packager": "^15.3.0",
+    "concurrently": "^5.3.0",
+    "cross-env": "^7.0.3",
+    "electron": "^11.2.1",
+    "electron-builder": "^22.9.1",
     "electron-rebuild": "^3.1.1",
-    "electron-reloader": "^1.2.1"
+    "prettier": "^2.2.1",
+    "wait-on": "^5.2.1"
   }
 }

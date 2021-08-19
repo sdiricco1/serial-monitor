@@ -2,6 +2,14 @@ const serialport = require("serialport");
 const Delimiter = require("@serialport/parser-delimiter");
 const Readline = require("@serialport/parser-readline");
 const Regex = require("@serialport/parser-regex");
+const InterByteTimeout = require("@serialport/parser-inter-byte-timeout");
+// const parser = port.pipe(new InterByteTimeout({interval: 30}))
+
+const DELIMITER_NONE = "none";
+const DELIMITER_N = "\n";
+const DELIMITER_RN = "\r\n";
+const DELIMITER_REGEXPR = "reg_exp";
+const DELIMITER_INTERBYTE_TIME = "int_byte_time";
 
 class SerialMonitor {
   constructor() {
@@ -9,6 +17,7 @@ class SerialMonitor {
     this.__port = undefined;
     this.__sp = undefined;
     this.__parser = undefined;
+    this.__delimiter = DELIMITER_NONE;
     this.__isConnected = false;
   }
 
@@ -48,30 +57,40 @@ class SerialMonitor {
     return this.__port;
   }
 
-  setNewDelimiter(delimiter = "\n") {
-    this.__setParser(delimiter);
+  set delimiter(delimiter = "none") {
+    this.__delimiter = delimiter;
   }
 
-  __setParser(delimiter) {
+  __setParser() {
     if (this.__sp !== undefined) {
-      this.__parser = this.__sp.pipe(new Delimiter({ delimiter: delimiter }));
+      if (this.__delimiter === "none") {
+        this.__parser = this.__sp;
+      } else {
+        this.__parser = this.__sp.pipe(
+          new Delimiter({ delimiter: this.__delimiter })
+        );
+      }
     }
   }
 
   async connect() {
-    if (this.__baudRate !== undefined && this.__port !== undefined) {
-      try {
-        this.__sp = new serialport(this.__port, {
-          baudRate: this.__baudRate,
-          autoOpen: false
-        });
-        await this.__open();
-        this.__parser = this.__sp;
-      } catch (e) {
-        throw e;
-      }
-      this.__isConnected = true;
+    if (this.__sp !== undefined && this.__isConnected === true) {
+      await this.disconnect();
     }
+    if (this.__baudRate === undefined || this.__port === undefined) {
+      throw new Error("Set baud rate and port before");
+    }
+    try {
+      this.__sp = new serialport(this.__port, {
+        baudRate: this.__baudRate,
+        autoOpen: false,
+      });
+      await this.__open();
+      await this.__setParser();
+    } catch (e) {
+      throw e;
+    }
+    this.__isConnected = true;
   }
 
   async disconnect() {
@@ -85,12 +104,11 @@ class SerialMonitor {
 
   onData(callback) {
     if (this.__isConnected) {
-      console.log("on data");
       this.__parser.on("data", (data) => {
         const res = {
           timestamp: new Date().getTime(),
           data: data.toString(),
-        }
+        };
         callback(res);
       });
     }
@@ -103,7 +121,7 @@ class SerialMonitor {
           callback(`Error: Port ${this.__port} closed. Try to reconnect`);
         }
       });
-    }else if (this.__sp !== undefined) {
+    } else if (this.__sp !== undefined) {
       this.__sp.on("error", (data) => {
         callback(`Error: Port ${this.__port} closed. Try to reconnect`);
       });
@@ -111,8 +129,8 @@ class SerialMonitor {
   }
 
   async write(data) {
-    if(this.__sp == undefined){
-      throw(new Error("Connect a serial device before"))
+    if (this.__sp == undefined) {
+      throw new Error("Connect a serial device before");
     }
     await this.__writeAndDrain(data);
   }
@@ -169,4 +187,4 @@ class SerialMonitor {
   }
 }
 
-module.exports = { SerialMonitor };
+module.exports = { SerialMonitor, DELIMITER_NONE, DELIMITER_N };

@@ -3,7 +3,6 @@ const { app, BrowserWindow, ipcMain, dialog } = require("electron");
 const path = require("path");
 const isDev = require("electron-is-dev");
 const {SerialMonitor} = require("./modules/serialMonitor");
-const { ConsoleSqlOutlined } = require("@ant-design/icons");
 
 let mainWindow;
 let sm = new SerialMonitor();
@@ -54,9 +53,10 @@ ipcMain.handle("get-baudrate-values", async (event) => {
   return baudRateValues;
 });
 
-ipcMain.handle("start-serialmonitor", async (event, baudRate, port) => {
+ipcMain.handle("start-serialmonitor", async (event, baudRate, port, delimiter = "none") => {
   sm.baudRate = baudRate;
   sm.port = port;
+  sm.delimiter = delimiter
 
   console.log("baud", baudRate);
   console.log("port", port)
@@ -102,8 +102,8 @@ ipcMain.handle("send-data", async (event, data) => {
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    minWidth: 400,
-    minHeight: 600,
+    minWidth: 600,
+    minHeight: 400,
     show: true,
     title: "Serial Monitor App ",
     webPreferences: {
@@ -131,3 +131,18 @@ function createWindow() {
 
 app.allowRendererProcessReuse = false;
 app.on("ready", createWindow);
+
+// Quit when all windows are closed.
+app.on('window-all-closed', function () {
+  // On OS X it is common for applications and their menu bar
+  // to stay active until the user quits explicitly with Cmd + Q
+  if (process.platform !== 'darwin') {
+    app.quit()
+  }
+})
+
+app.on('activate', function () {
+  // On OS X it's common to re-create a window in the app when the
+  // dock icon is clicked and there are no other windows open.
+  if (BrowserWindow.getAllWindows().length === 0) createWindow()
+})
