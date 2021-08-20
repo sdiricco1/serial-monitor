@@ -2,33 +2,23 @@ import "antd/dist/antd.css"; // or 'antd/dist/antd.less'
 import React from "react";
 import {
   Input,
-  Divider,
-  Menu,
-  Dropdown,
   Button,
-  message,
-  Space,
-  Tooltip,
-  Cascader,
   Select,
   Row,
   Col,
   Typography,
+  Popover,
 } from "antd";
 import {
-  RightSquareFilled,
-  DownOutlined,
-  UserOutlined,
-  CaretDownOutlined,
-  PlayCircleOutlined,
-  PlaySquareOutlined,
   PauseOutlined,
   CaretRightOutlined,
   ClearOutlined,
-  AlertTwoTone,
   FieldTimeOutlined,
 } from "@ant-design/icons";
 
+import SmSender from "./components/SmSender";
+import SmMonitor from "./components/SmMonitor"
+import SmFooter from "./components/SmFooter";
 import styles from "./App.module.css";
 
 const { ipcRenderer } = window.require("electron");
@@ -78,8 +68,9 @@ class App extends React.Component {
       portList: [],
       baudRateValues: [],
       serialMonitorData: [],
-      dataToSend: "",
       isTimestampEnabled: false,
+      helperButton: "",
+      helperOption: "",
       info: {
         isStarted: false,
         color: "#f5f5f5",
@@ -94,8 +85,7 @@ class App extends React.Component {
     this.onClickStartStop = this.onClickStartStop.bind(this);
     this.onSerialMonitorData = this.onSerialMonitorData.bind(this);
     this.onClickClearMonitor = this.onClickClearMonitor.bind(this);
-    this.onChangeDataToSend = this.onChangeDataToSend.bind(this);
-    this.onClickSendData = this.onClickSendData.bind(this);
+    this.onSendData = this.onSendData.bind(this);
     this.onSerialMonitorError = this.onSerialMonitorError.bind(this);
     this.onClickEnableTimeStamp = this.onClickEnableTimeStamp.bind(this);
     this.onKeyPressInputSendData = this.onKeyPressInputSendData.bind(this);
@@ -175,11 +165,11 @@ class App extends React.Component {
     this.setState({ serialMonitorData: [] });
   }
 
-  async onClickSendData() {
+  async onSendData(data) {
     try {
-      const ok = await ipcRenderer.invoke("send-data", this.state.dataToSend);
+      const ok = await ipcRenderer.invoke("send-data", data);
       if (ok) {
-        this.setState({ dataToSend: "" });
+        console.log(data);
       }
     } catch (e) {
       console.log(e);
@@ -188,17 +178,13 @@ class App extends React.Component {
 
   onKeyPressInputSendData(e) {
     if (e.key === "Enter" && this.state.info.isStarted) {
-      this.onClickSendData();
+      this.onSendData();
     }
   }
 
   onClickEnableTimeStamp() {
     const isTimestampEnabled = this.state.isTimestampEnabled;
     this.setState({ isTimestampEnabled: !isTimestampEnabled });
-  }
-
-  onChangeDataToSend(e) {
-    this.setState({ dataToSend: e.target.value });
   }
 
   onSerialMonitorData(event, dataStructure) {
@@ -250,16 +236,16 @@ class App extends React.Component {
   }
 
   render() {
-    const baudRateValues = this.state.baudRateValues.map((el) => {
-      return <Option value={el}>{el}</Option>;
+    const baudRateValues = this.state.baudRateValues.map((el, i) => {
+      return <Option key={`baudrate_${i}`} value={el}>{el}</Option>;
     });
 
-    const portNameList = this.state.portList.map((el) => {
-      return <Option value={el.name}>{el.name}</Option>;
+    const portNameList = this.state.portList.map((el, i) => {
+      return <Option key={`port_${i}`} value={el.name}>{el.name}</Option>;
     });
 
     const delimiterNameList = this.state.delimiterList.map((el, i) => {
-      return <Option value={el.label}>{el.label}</Option>;
+      return <Option key={`delimiter_${i}`} value={el.label}>{el.label}</Option>;
     });
 
     let iconStartStop = <CaretRightOutlined size="small" />;
@@ -298,6 +284,15 @@ class App extends React.Component {
             {/* Start / Stop */}
             <Col flex="0 0 40px">
               <Button
+                onMouseEnter={() => {
+                  const helperButton = this.state.info.isStarted
+                    ? "Stop"
+                    : "Start";
+                  this.setState({ helperButton: helperButton });
+                }}
+                onMouseLeave={() => {
+                  this.setState({ helperButton: "" });
+                }}
                 onClick={this.onClickStartStop}
                 className={styles.autoWidth}
                 size="small"
@@ -319,6 +314,12 @@ class App extends React.Component {
             <Col flex="0 0 40px">
               <Button
                 onClick={this.onClickEnableTimeStamp}
+                onMouseEnter={() => {
+                  this.setState({ helperButton: "Timestamp" });
+                }}
+                onMouseLeave={() => {
+                  this.setState({ helperButton: "" });
+                }}
                 className={styles.autoWidth}
                 size="small"
                 style={{
@@ -340,11 +341,22 @@ class App extends React.Component {
                   color: COLOR_BUTTON_CLEAR,
                 }}
                 onClick={this.onClickClearMonitor}
+                onMouseEnter={() => {
+                  this.setState({ helperButton: "Clear Monitor" });
+                }}
+                onMouseLeave={() => {
+                  this.setState({ helperButton: "" });
+                }}
                 className={styles.autoWidth}
                 size="small"
               >
                 <ClearOutlined size="small" />
               </Button>
+            </Col>
+            <Col flex="0 0 160px">
+              <Text className={styles.colorWhite}>
+                {this.state.helperButton}
+              </Text>
             </Col>
           </Row>
         </div>
@@ -352,9 +364,11 @@ class App extends React.Component {
         <div className={styles.options}>
           <Row>
             {/*Options*/}
+
             <Col flex="auto" className={styles.optionsInput}>
               <Row gutter={4} wrap={false}>
                 {/* Baud rate */}
+
                 <Col flex="0 0 160px">
                   <Text className={styles.colorWhite}>Baud Rate</Text>
                   <Select
@@ -387,9 +401,9 @@ class App extends React.Component {
                   </Select>
                 </Col>
 
-                {/* Delimiter */}
+                {/* Parse Delimiter */}
                 <Col flex="0 0 160px">
-                  <Text className={styles.colorWhite}>Delimiter</Text>
+                  <Text className={styles.colorWhite}>Delimiter parser</Text>
 
                   <Select
                     style={{ border: "none" }}
@@ -407,48 +421,12 @@ class App extends React.Component {
           </Row>
         </div>
 
-        <div className={styles.sender}>
-          <Row gutter={4}>
-            {/* Input */}
-            <Col flex="auto">
-              <code>
-                <Input
-                  placeholder="type something and press Enter to send"
-                  value={this.state.dataToSend}
-                  onChange={this.onChangeDataToSend}
-                  onKeyPress={this.onKeyPressInputSendData}
-                  size="small"
-                  disabled={!this.state.info.isStarted}
-                ></Input>
-              </code>
-            </Col>
-          </Row>
-        </div>
-
-        <div className={styles.monitor} id="monitor">
-          <code>
-            <TextArea
-              className={styles.viewer}
-              bordered={false}
-              autoSize={true}
-              value={this.state.serialMonitorData.join("")}
-            ></TextArea>
-          </code>
-        </div>
-
-        <div className={styles.footer}>
-          <Row gutter={4} wrap={false} className={styles.content}>
-            <Col>
-              <div
-                className={styles.status}
-                style={{ background: this.state.info.color }}
-              ></div>
-            </Col>
-            <Col style={{ color: "#ffffff" }} className={styles.overflowHidden}>
-              {this.state.info.label}
-            </Col>
-          </Row>
-        </div>
+        <SmSender enable={this.state.info.isStarted} onPressEnter={this.onSendData}/>
+        <SmMonitor value={this.state.serialMonitorData.join("")} />
+        <SmFooter
+          statusColor={this.state.info.color}
+          label={this.state.info.label}
+        />
       </div>
     );
   }

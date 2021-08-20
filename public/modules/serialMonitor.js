@@ -3,6 +3,7 @@ const Delimiter = require("@serialport/parser-delimiter");
 const Readline = require("@serialport/parser-readline");
 const Regex = require("@serialport/parser-regex");
 const InterByteTimeout = require("@serialport/parser-inter-byte-timeout");
+const { watchFile } = require("original-fs");
 // const parser = port.pipe(new InterByteTimeout({interval: 30}))
 
 const DELIMITER_NONE = "none";
@@ -10,6 +11,8 @@ const DELIMITER_N = "\n";
 const DELIMITER_RN = "\r\n";
 const DELIMITER_REGEXPR = "reg_exp";
 const DELIMITER_INTERBYTE_TIME = "int_byte_time";
+
+const baudRateValues = [9600, 19200, 38400, 57600, 74880, 115200];
 
 class SerialMonitor {
   constructor() {
@@ -38,11 +41,11 @@ class SerialMonitor {
   }
 
   static async getBaudRateValues() {
-    return [9600, 19200, 38400, 57600];
+    return baudRateValues;
   }
 
   set baudRate(baudRate) {
-    this.__baudRate = baudRate;
+    this.__baudRate = baudRateValues.find(el => el === baudRate);
   }
 
   set port(port) {
@@ -74,11 +77,17 @@ class SerialMonitor {
   }
 
   async connect() {
+
+    //Error manage
+    if (this.__baudRate === undefined) {
+      throw new Error("Set baud rate before connect to Serial Monitor");
+    }
+    if (this.__port === undefined) {
+      throw new Error("Set port before connect to Serial Monitor");
+    }
+
     if (this.__sp !== undefined && this.__isConnected === true) {
       await this.disconnect();
-    }
-    if (this.__baudRate === undefined || this.__port === undefined) {
-      throw new Error("Set baud rate and port before");
     }
     try {
       this.__sp = new serialport(this.__port, {
@@ -103,6 +112,7 @@ class SerialMonitor {
   }
 
   onData(callback) {
+
     if (this.__isConnected) {
       this.__parser.on("data", (data) => {
         const res = {
