@@ -1,6 +1,14 @@
 import "antd/dist/antd.css"; // or 'antd/dist/antd.less'
 import React from "react";
-import { Input, Button, Select, Row, Col, Typography, Popover } from "antd";
+import {
+  Input,
+  Button,
+  Select,
+  Row,
+  Col,
+  Typography,
+  Popover,
+} from "antd";
 import {
   PauseOutlined,
   CaretRightOutlined,
@@ -9,7 +17,7 @@ import {
 } from "@ant-design/icons";
 
 import SmSender from "./components/SmSender";
-import SmMonitor from "./components/SmMonitor";
+import SmMonitor from "./components/SmMonitor"
 import SmFooter from "./components/SmFooter";
 import styles from "./App.module.css";
 
@@ -118,16 +126,12 @@ class App extends React.Component {
         (el) => el.name === this.state.portSelected
       );
       try {
-        await ipcRenderer.invoke(
-          "set-option:baudrate",
-          this.state.baudRateSelected
-        );
-        await ipcRenderer.invoke("set-option:port", portObj.port);
-        await ipcRenderer.invoke(
-          "set-option:delimiter",
+        const ok = await ipcRenderer.invoke(
+          "start-serialmonitor",
+          this.state.baudRateSelected,
+          portObj.port,
           this.state.delimiterSelected.value
         );
-        const ok = await ipcRenderer.invoke("start-serialmonitor");
         if (ok) {
           const info = {
             isStarted: true,
@@ -233,27 +237,15 @@ class App extends React.Component {
 
   render() {
     const baudRateValues = this.state.baudRateValues.map((el, i) => {
-      return (
-        <Option key={`baudrate_${i}`} value={el}>
-          {el}
-        </Option>
-      );
+      return <Option key={`baudrate_${i}`} value={el}>{el}</Option>;
     });
 
     const portNameList = this.state.portList.map((el, i) => {
-      return (
-        <Option key={`port_${i}`} value={el.name}>
-          {el.name}
-        </Option>
-      );
+      return <Option key={`port_${i}`} value={el.name}>{el.name}</Option>;
     });
 
     const delimiterNameList = this.state.delimiterList.map((el, i) => {
-      return (
-        <Option key={`delimiter_${i}`} value={el.label}>
-          {el.label}
-        </Option>
-      );
+      return <Option key={`delimiter_${i}`} value={el.label}>{el.label}</Option>;
     });
 
     let iconStartStop = <CaretRightOutlined size="small" />;
@@ -286,89 +278,6 @@ class App extends React.Component {
     }
 
     return (
-      <div className={styles.mainContainer}>
-        <div className={styles.buttonsGroup}>
-          <Row justify="start" gutter={4}>
-            {/* Start / Stop */}
-            <Col flex="0 0 40px">
-              <Button
-                onMouseEnter={() => {
-                  const helperButton = this.state.info.isStarted
-                    ? "Stop"
-                    : "Start";
-                  this.setState({ helperButton: helperButton });
-                }}
-                onMouseLeave={() => {
-                  this.setState({ helperButton: "" });
-                }}
-                onClick={this.onClickStartStop}
-                className={styles.autoWidth}
-                size="small"
-                style={{
-                  border: "none",
-                  background: backgroundButtonStartStop,
-                  color: colorButtonStartStop,
-                }}
-                disabled={
-                  this.state.portSelected === undefined ||
-                  this.state.baudRateSelected === undefined
-                }
-              >
-                {iconStartStop}
-              </Button>
-            </Col>
-
-            {/* timestamp */}
-            <Col flex="0 0 40px">
-              <Button
-                onClick={this.onClickEnableTimeStamp}
-                onMouseEnter={() => {
-                  this.setState({ helperButton: "Timestamp" });
-                }}
-                onMouseLeave={() => {
-                  this.setState({ helperButton: "" });
-                }}
-                className={styles.autoWidth}
-                size="small"
-                style={{
-                  border: "none",
-                  background: backgroundButtonTimeStamp,
-                  color: colorButtonTimeStamp,
-                }}
-              >
-                <FieldTimeOutlined size="small" />
-              </Button>
-            </Col>
-
-            {/* Clear */}
-            <Col flex="0 0 40px">
-              <Button
-                style={{
-                  border: "none",
-                  background: BACKGROUND_BUTTON_CLEAR,
-                  color: COLOR_BUTTON_CLEAR,
-                }}
-                onClick={this.onClickClearMonitor}
-                onMouseEnter={() => {
-                  this.setState({ helperButton: "Clear Monitor" });
-                }}
-                onMouseLeave={() => {
-                  this.setState({ helperButton: "" });
-                }}
-                className={styles.autoWidth}
-                size="small"
-              >
-                <ClearOutlined size="small" />
-              </Button>
-            </Col>
-            <Col flex="0 0 160px">
-              <Text className={styles.colorWhite}>
-                {this.state.helperButton}
-              </Text>
-            </Col>
-          </Row>
-        </div>
-
         <div className={styles.options}>
           <Row>
             {/*Options*/}
@@ -380,15 +289,20 @@ class App extends React.Component {
                 <Col flex="0 0 160px">
                   <Text className={styles.colorWhite}>Baud Rate</Text>
                   <Select
-                    value={this.state.baudRateSelected}
+                    // value={this.state.baudRateSelected}
+                    value={this.props.baudRateSelected}
                     className={styles.autoWidth}
-                    onClick={this.onClickShowBauRateValues}
+                    // onClick={this.onClickShowBauRateValues}
+                    onClick={this.props.onClickShowBauRateValues}
+                    // onChange={this.onChangeBaudRate}
                     onChange={this.onChangeBaudRate}
                     size="small"
                     defaultValue="---"
-                    disabled={this.state.info.isStarted}
+                    // disabled={this.state.info.isStarted}
+                    disabled={this.props.disabledBaudRate}
                   >
-                    {baudRateValues}
+                    {/* {baudRateValues} */}
+                    {this.props.baudRateValues}
                   </Select>
                 </Col>
 
@@ -428,17 +342,6 @@ class App extends React.Component {
             </Col>
           </Row>
         </div>
-
-        <SmSender
-          enable={this.state.info.isStarted}
-          onPressEnter={this.onSendData}
-        />
-        <SmMonitor value={this.state.serialMonitorData.join("")} />
-        <SmFooter
-          statusColor={this.state.info.color}
-          label={this.state.info.label}
-        />
-      </div>
     );
   }
 }

@@ -21,7 +21,10 @@ class SerialMonitor {
     this.__sp = undefined;
     this.__parser = undefined;
     this.__delimiter = DELIMITER_NONE;
-    this.__isConnected = false;
+    this.__state = {
+      connected: true,
+    };
+    this.__onInfoCallback = undefined;
   }
 
   static async getDevics() {
@@ -45,7 +48,7 @@ class SerialMonitor {
   }
 
   set baudRate(baudRate) {
-    this.__baudRate = baudRateValues.find(el => el === baudRate);
+    this.__baudRate = baudRateValues.find((el) => el === baudRate);
   }
 
   set port(port) {
@@ -77,7 +80,6 @@ class SerialMonitor {
   }
 
   async connect() {
-
     //Error manage
     if (this.__baudRate === undefined) {
       throw new Error("Set baud rate before connect to Serial Monitor");
@@ -86,7 +88,7 @@ class SerialMonitor {
       throw new Error("Set port before connect to Serial Monitor");
     }
 
-    if (this.__sp !== undefined && this.__isConnected === true) {
+    if (this.__sp !== undefined && this.__state.connected === true) {
       await this.disconnect();
     }
     try {
@@ -99,11 +101,17 @@ class SerialMonitor {
     } catch (e) {
       throw e;
     }
-    this.__isConnected = true;
+    this.__state.connected = true;
+    if (this.__onInfoCallback !== undefined) {
+      this.__onInfoCallback(this.__state);
+    }
   }
 
   async disconnect() {
-    this.__isConnected = false;
+    this.__state.connected = false;
+    if (this.__onInfoCallback !== undefined) {
+      this.__onInfoCallback(this.__state);
+    }
     try {
       await this.__close();
     } catch (e) {
@@ -112,8 +120,7 @@ class SerialMonitor {
   }
 
   onData(callback) {
-
-    if (this.__isConnected) {
+    if (this.__state.connected && this.__parser !== undefined) {
       this.__parser.on("data", (data) => {
         const res = {
           timestamp: new Date().getTime(),
@@ -125,17 +132,30 @@ class SerialMonitor {
   }
 
   onError(callback) {
-    if (this.__sp !== undefined && this.__isConnected) {
+    if (this.__sp !== undefined) {
       this.__sp.on("close", (data) => {
         if (data !== null) {
-          callback(`Error: Port ${this.__port} closed. Try to reconnect`);
+          this.__state.connected = false;
+          if (this.__onInfoCallback !== undefined) {
+            this.__onInfoCallback(this.__state);
+          }
+          const message = `Close Error: Port ${this.__port} closed. Try to reconnect`;
+          callback(message);
         }
       });
-    } else if (this.__sp !== undefined) {
       this.__sp.on("error", (data) => {
-        callback(`Error: Port ${this.__port} closed. Try to reconnect`);
+        this.__state.connected = false;
+        if (this.__onInfoCallback !== undefined) {
+          this.__onInfoCallback(this.__state);
+        }
+        const message = `Generic Error: Port ${this.__port} closed. Try to reconnect`;
+        callback(message);
       });
     }
+  }
+
+  onInfo(callback) {
+    this.__onInfoCallback = callback;
   }
 
   async write(data) {

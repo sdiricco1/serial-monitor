@@ -23,6 +23,10 @@ const onSerialMonitorData = (dataStructure) => {
   mainWindow.webContents.send("on-serialmonitor-data", dataStructure);
 }
 
+const onSerialMonitorInfo = (dataStructure) => {
+  mainWindow.webContents.send("on-serialmonitor-info", dataStructure);
+}
+
 const onSerialMonitorError = (data) =>{
   mainWindow.webContents.send("on-serialmonitor-error", data);
   console.log(data)
@@ -53,17 +57,27 @@ ipcMain.handle("get-baudrate-values", async (event) => {
   return baudRateValues;
 });
 
-ipcMain.handle("start-serialmonitor", async (event, baudRate, port, delimiter = "none") => {
+ipcMain.handle("set-option:baudrate", async(event, baudRate) => {
   sm.baudRate = baudRate;
-  sm.port = port;
-  sm.delimiter = delimiter
+})
 
-  console.log("baud", baudRate);
-  console.log("port", port)
+ipcMain.handle("set-option:port", async(event, port) => {
+  sm.port = port;
+})
+
+ipcMain.handle("set-option:delimiter", async(event, delimiter) => {
+  sm.delimiter = delimiter;
+})
+
+
+
+ipcMain.handle("start-serialmonitor", async (event) => {
   try {
     await sm.connect();
     sm.onData(onSerialMonitorData);
     sm.onError(onSerialMonitorError);
+    sm.onInfo(onSerialMonitorInfo);
+
     return true;
   } catch (e) {
     onSerialMonitorError(e.message);
