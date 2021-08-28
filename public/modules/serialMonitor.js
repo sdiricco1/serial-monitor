@@ -79,7 +79,7 @@ class SerialMonitor {
     }
   }
 
-  async connect() {
+  async initialize() {
     //Error manage
     if (this.__baudRate === undefined) {
       throw new Error("Set baud rate before connect to Serial Monitor");
@@ -98,13 +98,13 @@ class SerialMonitor {
       });
       await this.__open();
       await this.__setParser();
+      this.__state.connected = true;
     } catch (e) {
+      this.__state.connected = false;
       throw e;
     }
-    this.__state.connected = true;
-    if (this.__onInfoCallback !== undefined) {
-      this.__onInfoCallback(this.__state);
-    }
+    
+    return this.__state;
   }
 
   async disconnect() {

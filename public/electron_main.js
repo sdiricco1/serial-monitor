@@ -24,6 +24,7 @@ const onSerialMonitorData = (dataStructure) => {
 }
 
 const onSerialMonitorInfo = (dataStructure) => {
+  console.log(dataStructure)
   mainWindow.webContents.send("on-serialmonitor-info", dataStructure);
 }
 
@@ -73,7 +74,11 @@ ipcMain.handle("set-option:delimiter", async(event, delimiter) => {
 
 ipcMain.handle("start-serialmonitor", async (event) => {
   try {
-    await sm.connect();
+    //initialize serial monitor
+    const state = await sm.initialize();
+    onSerialMonitorInfo(state)
+
+    //enable events
     sm.onData(onSerialMonitorData);
     sm.onError(onSerialMonitorError);
     sm.onInfo(onSerialMonitorInfo);
